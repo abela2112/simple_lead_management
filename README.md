@@ -74,5 +74,3 @@ Base URL: `http://localhost:5000`
 - `DELETE /leads/:id`  
   Delete a lead.
 
-## Notes
-- If you see Next.js `.next` `EINVAL readlink` errors on Windows + OneDrive, keep project files fully local (or move out of OneDrive sync) and prefer Node 18/20 LTS for Next 14.
