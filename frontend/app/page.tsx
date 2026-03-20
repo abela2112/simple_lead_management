@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Toaster, toast } from "react-hot-toast";
 import LeadForm from "@/components/LeadForm";
 import LeadsTable from "@/components/LeadsTable";
 import { createLead, deleteLead, getLeads, updateLead } from "@/lib/api";
@@ -11,7 +12,6 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,7 +24,9 @@ export default function HomePage() {
       const data = await getLeads();
       setLeads(data);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to fetch leads.");
+      const message = loadError instanceof Error ? loadError.message : "Failed to fetch leads.";
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -34,18 +36,6 @@ export default function HomePage() {
     loadLeads();
   }, []);
 
-  useEffect(() => {
-    if (!toastMessage) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [toastMessage]);
-
   const handleCreateLead = async (payload: {
     name: string;
     email: string;
@@ -54,11 +44,14 @@ export default function HomePage() {
     setIsSubmitting(true);
 
     try {
-      await createLead(payload);
-      await loadLeads();
-      setToastMessage("Lead created successfully.");
+      const createdLead = await createLead(payload);
+      setLeads((currentLeads) => [createdLead, ...currentLeads]);
+      toast.success("Lead created successfully.");
       setIsModalOpen(false);
       setEditingLead(null);
+    } catch (createError) {
+      const message = createError instanceof Error ? createError.message : "Failed to create lead.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,11 +74,12 @@ export default function HomePage() {
       setLeads((currentLeads) =>
         currentLeads.map((lead) => (lead._id === editingLead._id ? updated : lead))
       );
-      setToastMessage("Lead updated successfully.");
+      toast.success("Lead updated successfully.");
       setIsModalOpen(false);
       setEditingLead(null);
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Failed to update lead.");
+      const message = updateError instanceof Error ? updateError.message : "Failed to update lead.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -107,10 +101,11 @@ export default function HomePage() {
     try {
       await deleteLead(leadId);
       setLeads((currentLeads) => currentLeads.filter((lead) => lead._id !== leadId));
-      setToastMessage("Lead deleted successfully.");
+      toast.success("Lead deleted successfully.");
       setLeadToDelete(null);
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete lead.");
+      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete lead.";
+      toast.error(message);
     } finally {
       setDeletingLeadId(null);
     }
@@ -143,6 +138,7 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl p-6 md:p-8">
+      <Toaster position="top-right" />
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Lead Management</h1>
@@ -161,12 +157,6 @@ export default function HomePage() {
           </button>
         </div>
       </header>
-
-      {toastMessage ? (
-        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
-          {toastMessage}
-        </div>
-      ) : null}
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">All Leads</h2>
